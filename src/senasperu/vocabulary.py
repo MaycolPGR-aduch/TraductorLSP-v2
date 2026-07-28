@@ -17,6 +17,11 @@ from senasperu.config import Config
 # movimiento cotidiano.
 REST_SIGN_ID: str = "no_sena"
 
+# Tipos de seña admitidos en el campo ``tipo`` del vocabulario.
+KIND_STATIC: str = "estatica"
+KIND_DYNAMIC: str = "dinamica"
+SIGN_KINDS: frozenset[str] = frozenset({KIND_STATIC, KIND_DYNAMIC})
+
 
 @dataclass(frozen=True, slots=True)
 class Sign:
@@ -27,6 +32,9 @@ class Sign:
         glosa: Nombre en mayúsculas, como se escribe en glosas de LSP.
         text: Texto en español que produce la traducción.
         mirrorable: Si la seña admite aumento de datos por espejado horizontal.
+        kind: ``estatica`` (pose sostenida) o ``dinamica`` (el movimiento es
+            parte de la seña). Determina de dónde se extraen las ventanas de
+            entrenamiento y qué aumentos tienen sentido.
         index: Posición en el vocabulario (índice de clase del modelo).
     """
 
@@ -34,12 +42,27 @@ class Sign:
     glosa: str
     text: str
     mirrorable: bool
+    kind: str
     index: int
 
     @property
     def is_rest(self) -> bool:
         """``True`` si es la clase de reposo/no-seña."""
         return self.id == REST_SIGN_ID
+
+    @property
+    def is_static(self) -> bool:
+        """``True`` si la seña es una pose sostenida, sin trayectoria."""
+        return self.kind == KIND_STATIC
+
+    @property
+    def recording_hint(self) -> str:
+        """Instrucción para el señante, según el tipo de seña."""
+        if self.is_rest:
+            return "Manos relajadas en posición neutra, sin formar ninguna seña."
+        if self.is_static:
+            return "Llega rápido a la pose y sostenla hasta el final de la toma."
+        return "Hazla una sola vez, centrada: sal de reposo, ejecútala y vuelve a reposo."
 
 
 def load_vocabulary(config: Config) -> tuple[Sign, ...]:
@@ -56,6 +79,7 @@ def load_vocabulary(config: Config) -> tuple[Sign, ...]:
                 glosa=str(entrada["glosa"]),
                 text=str(entrada["texto"]),
                 mirrorable=bool(entrada["espejable"]),
+                kind=str(entrada["tipo"]),
                 index=indice,
             )
         )

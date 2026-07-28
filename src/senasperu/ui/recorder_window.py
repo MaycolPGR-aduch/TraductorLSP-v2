@@ -216,6 +216,13 @@ class RecorderWindow(QMainWindow):
         layout.addSpacing(6)
         layout.addWidget(self._glosa_label)
 
+        self._hint_label = QLabel("")
+        self._hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._hint_label.setWordWrap(True)
+        self._hint_label.setMinimumHeight(40)
+        self._hint_label.setStyleSheet("color: #5a6673;")
+        layout.addWidget(self._hint_label)
+
         self._counter_label = QLabel("")
         self._counter_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self._counter_label)
@@ -480,6 +487,7 @@ class RecorderWindow(QMainWindow):
         total = self._writer.count(sign.id, self._person)
 
         self._glosa_label.setText(sign.glosa)
+        self._hint_label.setText(sign.recording_hint)
         detalle = f"Sesión {sesion:02d}: {en_sesion}/{self._max_per_session}"
         detalle += f"   ·   Total: {total}/{self._target_per_sign}"
         if self._rejected_in_session:

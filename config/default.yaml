@@ -105,29 +105,41 @@ dataset:
 # ------------------------------------------------------------
 # 18 señas + clase de reposo. Incluye pares deliberadamente similares
 # para detectar confusiones del modelo desde temprano.
+#
 # "espejable": si la seña puede aumentarse con espejado horizontal
 # (false para señas donde la mano dominante o la lateralidad importan;
 # verificar cada una contra el diccionario oficial de LSP antes de grabar).
+#
+# "tipo": "estatica" (una configuración de mano que se sostiene, sin
+# trayectoria) o "dinamica" (el movimiento es parte de la seña). Determina
+# dos cosas en Fase 2: de dónde se extraen las ventanas de 2 s dentro de la
+# grabación de 3,5 s, y si tiene sentido aplicar jitter temporal al aumentar
+# los datos. TODAS empiezan como "dinamica" por ser el valor conservador;
+# corrige las estáticas contra el diccionario de LSP antes de grabarlas.
+# Al grabar: las estáticas se sostienen toda la ventana; las dinámicas se
+# ejecutan UNA sola vez, centradas, saliendo y volviendo a reposo.
 vocabulario:
-  - {id: no_sena,    glosa: "NO-SEÑA",    texto: "",            espejable: true}   # reposo, movimientos cotidianos
-  - {id: hola,       glosa: "HOLA",       texto: "hola",        espejable: false}
-  - {id: gracias,    glosa: "GRACIAS",    texto: "gracias",     espejable: false}
-  - {id: por_favor,  glosa: "POR-FAVOR",  texto: "por favor",   espejable: false}
-  - {id: adios,      glosa: "ADIÓS",      texto: "adiós",       espejable: false}
-  - {id: si,         glosa: "SÍ",         texto: "sí",          espejable: true}
-  - {id: no,         glosa: "NO",         texto: "no",          espejable: true}
-  - {id: bien,       glosa: "BIEN",       texto: "bien",        espejable: false}
-  - {id: mal,        glosa: "MAL",        texto: "mal",         espejable: false}
-  - {id: ayuda,      glosa: "AYUDA",      texto: "ayuda",       espejable: false}
-  - {id: agua,       glosa: "AGUA",       texto: "agua",        espejable: false}
-  - {id: bano,       glosa: "BAÑO",       texto: "baño",        espejable: false}
-  - {id: dolor,      glosa: "DOLOR",      texto: "dolor",       espejable: false}
-  - {id: comer,      glosa: "COMER",      texto: "comer",       espejable: false}
-  - {id: casa,       glosa: "CASA",       texto: "casa",        espejable: true}
-  - {id: familia,    glosa: "FAMILIA",    texto: "familia",     espejable: false}
-  - {id: nombre,     glosa: "NOMBRE",     texto: "nombre",      espejable: false}
-  - {id: entender,   glosa: "ENTENDER",   texto: "entiendo",    espejable: false}
-  - {id: no_entender, glosa: "NO-ENTENDER", texto: "no entiendo", espejable: false}
+  # En la clase de reposo el tipo es irrelevante (cualquier ventana vale) y el
+  # código la reconoce por su id, no por este campo.
+  - {id: no_sena,    glosa: "NO-SEÑA",    texto: "",            espejable: true,  tipo: estatica}
+  - {id: hola,       glosa: "HOLA",       texto: "hola",        espejable: false, tipo: dinamica}
+  - {id: gracias,    glosa: "GRACIAS",    texto: "gracias",     espejable: false, tipo: dinamica}
+  - {id: por_favor,  glosa: "POR-FAVOR",  texto: "por favor",   espejable: false, tipo: dinamica}
+  - {id: adios,      glosa: "ADIÓS",      texto: "adiós",       espejable: false, tipo: dinamica}
+  - {id: si,         glosa: "SÍ",         texto: "sí",          espejable: true,  tipo: dinamica}
+  - {id: no,         glosa: "NO",         texto: "no",          espejable: true,  tipo: dinamica}
+  - {id: bien,       glosa: "BIEN",       texto: "bien",        espejable: false, tipo: dinamica}
+  - {id: mal,        glosa: "MAL",        texto: "mal",         espejable: false, tipo: dinamica}
+  - {id: ayuda,      glosa: "AYUDA",      texto: "ayuda",       espejable: false, tipo: dinamica}
+  - {id: agua,       glosa: "AGUA",       texto: "agua",        espejable: false, tipo: dinamica}
+  - {id: bano,       glosa: "BAÑO",       texto: "baño",        espejable: false, tipo: dinamica}
+  - {id: dolor,      glosa: "DOLOR",      texto: "dolor",       espejable: false, tipo: dinamica}
+  - {id: comer,      glosa: "COMER",      texto: "comer",       espejable: false, tipo: dinamica}
+  - {id: casa,       glosa: "CASA",       texto: "casa",        espejable: true,  tipo: dinamica}
+  - {id: familia,    glosa: "FAMILIA",    texto: "familia",     espejable: false, tipo: dinamica}
+  - {id: nombre,     glosa: "NOMBRE",     texto: "nombre",      espejable: false, tipo: dinamica}
+  - {id: entender,   glosa: "ENTENDER",   texto: "entiendo",    espejable: false, tipo: dinamica}
+  - {id: no_entender, glosa: "NO-ENTENDER", texto: "no entiendo", espejable: false, tipo: dinamica}
   # ENTENDER / NO-ENTENDER y SÍ / NO son los pares similares de control
 
 # ------------------------------------------------------------

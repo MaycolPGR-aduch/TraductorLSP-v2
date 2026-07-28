@@ -188,6 +188,10 @@ def validate_config(config: Config) -> None:
     Raises:
         ConfigError: Si falta alguna sección obligatoria o el vocabulario es inválido.
     """
+    # Import local: 'vocabulary' importa este módulo, así que a nivel de módulo
+    # sería una dependencia circular.
+    from senasperu.vocabulary import REST_SIGN_ID, SIGN_KINDS
+
     faltantes = [seccion for seccion in REQUIRED_SECTIONS if seccion not in config]
     if faltantes:
         raise ConfigError(
@@ -202,11 +206,16 @@ def validate_config(config: Config) -> None:
     for entrada in vocabulario:
         if not isinstance(entrada, Mapping):
             raise ConfigError("Cada entrada de 'vocabulario' debe ser un diccionario.")
-        for clave in ("id", "glosa", "texto", "espejable"):
+        for clave in ("id", "glosa", "texto", "espejable", "tipo"):
             if clave not in entrada:
                 raise ConfigError(
                     f"La entrada de vocabulario {dict(entrada)!r} no tiene la clave '{clave}'."
                 )
+        if entrada["tipo"] not in SIGN_KINDS:
+            raise ConfigError(
+                f"La seña '{entrada['id']}' tiene tipo '{entrada['tipo']}'; "
+                f"solo se admite {' o '.join(sorted(SIGN_KINDS))}."
+            )
         ids.append(str(entrada["id"]))
 
     duplicados = sorted({i for i in ids if ids.count(i) > 1})
@@ -214,9 +223,9 @@ def validate_config(config: Config) -> None:
         raise ConfigError("Hay ids de seña duplicados en 'vocabulario': " + ", ".join(duplicados))
 
     # La clase de reposo es obligatoria: sin ella la app produce traducciones espurias.
-    if "no_sena" not in ids:
+    if REST_SIGN_ID not in ids:
         raise ConfigError(
-            "El vocabulario debe incluir la clase de reposo con id 'no_sena'."
+            f"El vocabulario debe incluir la clase de reposo con id '{REST_SIGN_ID}'."
         )
 
 

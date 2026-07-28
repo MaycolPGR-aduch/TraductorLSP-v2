@@ -25,6 +25,12 @@ FACE_COORDS: int = 3
 POSE_LEFT_SHOULDER: int = 11
 POSE_RIGHT_SHOULDER: int = 12
 
+# Parte de la pose que importa en LSP: hombros, codos, muñecas y los puntos de
+# mano que entrega el modelo de pose (11-22). Se excluyen los puntos faciales
+# (0-10), que ya cubre FaceMesh, y caderas y piernas (23-32): cuando quedan
+# fuera del encuadre MediaPipe los extrapola y solo ensucian la vista previa.
+POSE_UPPER_BODY: frozenset[int] = frozenset(range(11, 23))
+
 
 @dataclass(frozen=True, slots=True)
 class HolisticResult:

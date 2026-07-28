@@ -13,7 +13,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QTimer, Signal
+from PySide6.QtCore import QObject, Qt, QTimer, Signal
 
 from senasperu.capture.capture_thread import CaptureThread
 from senasperu.capture.frame_queue import DropOldestQueue
@@ -26,6 +26,8 @@ logger = logging.getLogger(__name__)
 
 # Cada cuántos milisegundos se refrescan los contadores de rendimiento.
 STATS_INTERVAL_MS: int = 500
+# Cuántas veces por frame se consulta la cola de resultados (ver constructor).
+POLL_OVERSAMPLING: int = 2
 
 try:  # psutil es opcional: sin él, la app funciona pero sin métricas de sistema.
     import psutil
@@ -87,7 +89,14 @@ class PipelineBridge(QObject):
 
         fps_objetivo = int(config.get("camara.fps_objetivo", 30))
         self._poll_timer = QTimer(self)
-        self._poll_timer.setInterval(max(1, round(1000 / max(1, fps_objetivo))))
+        # PreciseTimer es obligatorio en Windows: el temporizador por defecto se
+        # redondea a múltiplos de 15,6 ms, así que un intervalo de 33 ms termina
+        # disparando cada 46,9 ms (21 FPS en vez de 30).
+        self._poll_timer.setTimerType(Qt.TimerType.PreciseTimer)
+        # Sondeamos al doble del ritmo de captura: así un frame recién llegado se
+        # pinta enseguida en vez de esperar hasta un periodo completo. Cuando no
+        # hay nada nuevo, la consulta a la cola es prácticamente gratis.
+        self._poll_timer.setInterval(max(1, round(1000 / max(1, fps_objetivo * POLL_OVERSAMPLING))))
         self._poll_timer.timeout.connect(self._drain_results)
 
         self._stats_timer = QTimer(self)

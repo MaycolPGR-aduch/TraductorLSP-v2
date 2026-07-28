@@ -153,7 +153,11 @@ class SmokeWindow(QMainWindow):
     @Slot(object)
     def _on_frame_ready(self, processed: ProcessedFrame) -> None:
         """Pinta el frame más reciente."""
-        imagen = _to_qimage(processed.image)
+        # 'rgb' debe seguir vivo mientras exista el QImage: este lo envuelve sin
+        # copiar, y QPixmap.fromImage es quien finalmente copia los píxeles.
+        rgb = _to_rgb(processed.image)
+        alto, ancho = rgb.shape[:2]
+        imagen = QImage(rgb.data, ancho, alto, 3 * ancho, QImage.Format.Format_RGB888)
         pixmap = QPixmap.fromImage(imagen).scaled(
             self._video_label.size(),
             Qt.AspectRatioMode.KeepAspectRatio,
@@ -191,13 +195,10 @@ class SmokeWindow(QMainWindow):
         etiqueta.setStyleSheet(f"color: {color};")
 
 
-def _to_qimage(image_bgr: np.ndarray) -> QImage:
-    """Convierte una imagen BGR de NumPy en ``QImage`` RGB.
+def _to_rgb(image_bgr: np.ndarray) -> np.ndarray:
+    """Devuelve una copia contigua en RGB de una imagen BGR.
 
     El intercambio de canales se hace con NumPy (no con OpenCV) para que la capa
     de interfaz no dependa de OpenCV.
     """
-    alto, ancho = image_bgr.shape[:2]
-    rgb = np.ascontiguousarray(image_bgr[:, :, ::-1])
-    # .copy() desacopla el QImage del buffer de NumPy, que puede liberarse enseguida.
-    return QImage(rgb.data, ancho, alto, 3 * ancho, QImage.Format.Format_RGB888).copy()
+    return np.ascontiguousarray(image_bgr[:, :, ::-1])

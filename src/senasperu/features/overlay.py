@@ -12,7 +12,7 @@ from typing import Any
 import cv2
 import numpy as np
 
-from senasperu.features.landmarks import HolisticResult
+from senasperu.features.landmarks import POSE_UPPER_BODY, HolisticResult
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ class LandmarkOverlay:
         if result.pose is not None:
             self._draw_part(
                 image, result.pose[:, :2], ancho, alto, COLOR_POSE, self._pose_connections,
-                RADIO_PUNTO,
+                RADIO_PUNTO, indices=POSE_UPPER_BODY,
             )
         if self._draw_face and result.face is not None:
             self._draw_points(image, result.face[:, :2], ancho, alto, COLOR_FACE, RADIO_PUNTO_ROSTRO)
@@ -91,13 +91,21 @@ class LandmarkOverlay:
         color: tuple[int, int, int],
         conexiones: Any | None,
         radio: int,
+        indices: frozenset[int] | None = None,
     ) -> None:
+        """Dibuja una parte del cuerpo.
+
+        Args:
+            indices: Si se indica, solo se dibujan esos landmarks y las aristas
+                cuyos dos extremos estén incluidos.
+        """
         # .tolist() entrega enteros de Python, que es lo que espera la API de cv2.
         pixeles: list[list[int]] = _to_pixels(puntos_norm, ancho, alto).tolist()
+        visible = range(len(pixeles)) if indices is None else indices
         if conexiones:
             total = len(pixeles)
             for inicio, fin in conexiones:
-                if inicio < total and fin < total:
+                if inicio in visible and fin in visible and inicio < total and fin < total:
                     cv2.line(
                         image,
                         (pixeles[inicio][0], pixeles[inicio][1]),
@@ -106,8 +114,9 @@ class LandmarkOverlay:
                         GROSOR_LINEA,
                         lineType=cv2.LINE_AA,
                     )
-        for x, y in pixeles:
-            cv2.circle(image, (x, y), radio, color, -1, lineType=cv2.LINE_AA)
+        for indice, (x, y) in enumerate(pixeles):
+            if indice in visible:
+                cv2.circle(image, (x, y), radio, color, -1, lineType=cv2.LINE_AA)
 
     def _draw_points(
         self,

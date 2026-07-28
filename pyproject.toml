@@ -7,7 +7,9 @@ name = "senasperu"
 version = "0.1.0"
 description = "Traductor de Lengua de Señas Peruana (LSP) a texto y voz, 100% offline y CPU-only"
 readme = "README.md"
-requires-python = ">=3.11"
+# Techo real, no preferencia: mediapipe 0.10.21 (la última con Holistic legacy)
+# solo publica wheels hasta cp311 en Windows. Verificado con 'pip download'.
+requires-python = ">=3.11,<3.12"
 license = { text = "GPL-3.0-or-later" }
 
 # Dependencias de la APLICACIÓN final (sin PyTorch: el entrenamiento vive aparte).
@@ -15,8 +17,14 @@ dependencies = [
     # numpy <2: las wheels de MediaPipe 0.10.x están compiladas contra numpy 1.x.
     "numpy>=1.26,<2",
     "opencv-python>=4.9,<5",
-    # 0.10.x es la última serie con la solución legacy `mp.solutions.holistic`.
-    "mediapipe>=0.10.14,<0.11",
+    # VERSIÓN FIJA A PROPÓSITO. MediaPipe eliminó las soluciones legacy
+    # (`mp.solutions.*`) a partir de la 0.10.30: 0.10.21 es la última que incluye
+    # Holistic con sus modelos .tflite empaquetados dentro de la wheel, lo que
+    # evita descargas externas y mantiene la app 100 % offline.
+    # No subir esta versión sin migrar antes el extractor a la API Tasks
+    # (HolisticLandmarker) Y re-extraer el dataset desde los videos de respaldo:
+    # el formato de landmarks quedaría distinto al de las grabaciones existentes.
+    "mediapipe==0.10.21",
     "PySide6>=6.6,<7",
     "PyYAML>=6.0",
     # Métricas de CPU/RAM en vivo para validar los criterios de aceptación.

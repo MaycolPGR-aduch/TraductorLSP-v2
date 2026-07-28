@@ -60,7 +60,11 @@ grabador:
   repeticiones_objetivo_por_sena: 50
   repeticiones_min_por_sesion: 10
   repeticiones_max_por_sesion: 15   # evitar repeticiones consecutivas casi idénticas
-  guardar_video_respaldo: false     # true si quieres conservar .mp4 además de landmarks
+  # Guardar el video crudo además de los landmarks es el seguro contra un cambio
+  # futuro de extractor: sin él, el dataset queda atado para siempre a la versión
+  # de MediaPipe con la que se grabó. Costo estimado: ~1-3 GB para el vocabulario
+  # completo. Se guarda junto al .npz y está gitignoreado.
+  guardar_video_respaldo: true
   atajos:
     grabar: "Space"
     repetir_ultima: "R"

@@ -7,9 +7,22 @@ Traductor de **Lengua de Señas Peruana (LSP)** a texto y voz en tiempo real, co
 
 ## Requisitos
 
-- **Python 3.11 o superior** (64 bits).
+- **Python 3.11 exactamente** (64 bits). No sirve 3.12 ni superior: el proyecto
+  usa `mediapipe==0.10.21`, la última versión con la API `solutions.holistic`,
+  y esa versión solo publica wheels hasta cp311 en Windows.
 - Una webcam.
 - Windows, Linux o macOS. Probado en Windows 11.
+
+### Por qué MediaPipe está clavado en 0.10.21
+
+Google eliminó las soluciones legacy (`mp.solutions.*`) a partir de la 0.10.30.
+La 0.10.21 trae Holistic con sus modelos `.tflite` **dentro de la wheel**, así que
+no hay nada que descargar y la app queda 100 % offline sin pasos extra.
+
+Migrar algún día a la API Tasks (`HolisticLandmarker`) obliga a re-extraer el
+dataset completo desde los videos de respaldo, porque los landmarks no serían
+idénticos a los ya grabados. Por eso `grabador.guardar_video_respaldo` está en
+`true`: es el seguro que hace esa migración posible.
 
 ## Instalación
 

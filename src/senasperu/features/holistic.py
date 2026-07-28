@@ -1,7 +1,13 @@
 """Envoltorio de MediaPipe Holistic.
 
 Aísla toda la dependencia de MediaPipe en un solo lugar: el resto del proyecto
-solo conoce :class:`~senasperu.features.landmarks.HolisticResult`.
+solo conoce :class:`~senasperu.features.landmarks.HolisticResult`. Si alguna vez
+hay que migrar a la API Tasks (``HolisticLandmarker``), este es el único módulo
+que cambia... pero el dataset ya grabado habría que re-extraerlo desde los videos
+de respaldo, porque los landmarks no serían idénticos.
+
+Requiere ``mediapipe==0.10.21``: es la última versión que incluye las soluciones
+legacy con sus modelos ``.tflite`` empaquetados dentro de la wheel.
 
 Nota de rendimiento: la solución Holistic *siempre* ejecuta el modelo facial, no
 se puede desactivar. Por eso ``mediapipe.usar_rostro: false`` en la configuración
@@ -13,6 +19,7 @@ objetivo, la palanca real es ``model_complexity: 0``.
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any, Sequence
 
 import numpy as np
@@ -61,16 +68,23 @@ class HolisticExtractor:
         self._face_indices = np.asarray(face_indices, dtype=np.int32) if face_indices else None
         self._closed = False
 
+        # MediaPipe vuelca avisos de su capa C++ en stderr y ensucian los logs
+        # del usuario. Hay que silenciarlos ANTES de importarlo.
+        os.environ.setdefault("GLOG_minloglevel", "2")
+        os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+
         try:
             import mediapipe as mp  # import diferido: pesa y solo hace falta aquí
         except ImportError as error:  # pragma: no cover - depende del entorno
             raise RuntimeError(MENSAJE_SIN_MEDIAPIPE) from error
 
-        solucion = getattr(mp.solutions, "holistic", None)
-        if solucion is None:  # pragma: no cover - versiones futuras de MediaPipe
+        solucion = getattr(getattr(mp, "solutions", None), "holistic", None)
+        if solucion is None:  # pragma: no cover - versión equivocada instalada
             raise RuntimeError(
-                "Esta versión de MediaPipe ya no incluye la solución Holistic. "
-                "Instala una versión 0.10.x (ver pyproject.toml)."
+                f"La versión instalada de MediaPipe ({getattr(mp, '__version__', '?')}) ya no "
+                "incluye la solución Holistic: Google la eliminó a partir de la 0.10.30. "
+                "Reinstala la versión fijada del proyecto con 'pip install -e .' "
+                "(mediapipe==0.10.21)."
             )
 
         self._holistic = solucion.Holistic(

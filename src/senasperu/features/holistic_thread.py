@@ -34,6 +34,9 @@ class ProcessedFrame:
 
     Attributes:
         image: Imagen BGR, ya con el esqueleto dibujado si estaba habilitado.
+        clean_image: La misma imagen **sin** overlay. Es la que se graba como
+            video de respaldo del dataset: el esqueleto pintado encima
+            impediría re-extraer landmarks en el futuro.
         result: Landmarks extraídos del frame.
         frame_index: Índice del frame de origen.
         capture_timestamp: Instante en que se capturó el frame.
@@ -42,6 +45,7 @@ class ProcessedFrame:
     """
 
     image: np.ndarray
+    clean_image: np.ndarray
     result: HolisticResult
     frame_index: int
     capture_timestamp: float
@@ -102,9 +106,11 @@ class HolisticThread(threading.Thread):
                 resultado = extractor.process(frame.image)
                 fin_proceso = time.perf_counter()
 
+                # El overlay se dibuja sobre una copia: el frame original debe
+                # quedar limpio para el respaldo de video del dataset.
                 imagen = frame.image
                 if self.draw_landmarks:
-                    imagen = overlay.draw(imagen, resultado)
+                    imagen = overlay.draw(frame.image.copy(), resultado)
 
                 ahora = time.perf_counter()
                 self._frames_processed += 1
@@ -114,6 +120,7 @@ class HolisticThread(threading.Thread):
                 self._result_queue.put(
                     ProcessedFrame(
                         image=imagen,
+                        clean_image=frame.image,
                         result=resultado,
                         frame_index=frame.index,
                         capture_timestamp=frame.timestamp,

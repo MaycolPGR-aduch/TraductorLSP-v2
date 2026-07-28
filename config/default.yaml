@@ -65,6 +65,13 @@ grabador:
   # de MediaPipe con la que se grabó. Costo estimado: ~1-3 GB para el vocabulario
   # completo. Se guarda junto al .npz y está gitignoreado.
   guardar_video_respaldo: true
+  # Condiciones que se anotan en metadata.csv en cada repetición. Registrar la
+  # variedad es lo que permite detectar en Fase 2 si el modelo se apoyó en una
+  # iluminación, distancia o ropa concretas. La primera opción es la de defecto.
+  condiciones:
+    iluminacion: ["buena", "media", "baja"]
+    distancia: ["media", "cerca", "lejos"]
+    ropa: ["oscura", "clara", "estampada"]
   atajos:
     grabar: "Space"
     repetir_ultima: "R"

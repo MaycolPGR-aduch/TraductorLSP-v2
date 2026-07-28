@@ -3,7 +3,7 @@
 Traductor de **Lengua de Señas Peruana (LSP)** a texto y voz en tiempo real, con webcam.
 100 % offline, solo CPU, solo software libre.
 
-> Estado: **Fase 0 — Esqueleto**. Funciona el smoke test de cámara + MediaPipe + Qt.
+> Estado: **Fase 1 — Grabador de dataset**. Listo para grabar señas.
 
 ## Requisitos
 
@@ -75,6 +75,65 @@ Si los FPS quedan por debajo de 25, las palancas están todas en
 `config/default.yaml`, en este orden: `mediapipe.model_complexity: 0`,
 `mediapipe.usar_rostro: false`, y bajar `camara.ancho`/`camara.alto`.
 
+## Grabar el dataset (Fase 1)
+
+```bash
+python scripts/record_dataset.py
+```
+
+Para grabar a otra persona señante (el YAML define la que viene por defecto):
+
+```bash
+python scripts/record_dataset.py --persona p02
+```
+
+### Cómo se graba
+
+Todo se maneja con el teclado, sin tocar el mouse:
+
+| Tecla | Acción |
+|---|---|
+| `Espacio` | Grabar: 2 s de cuenta regresiva y luego 3,5 s de captura |
+| `←` `→` | Cambiar de seña |
+| `R` | Repetir la última seña grabada |
+| `D` | Descartar la última repetición guardada |
+| `Esc` | Salir |
+
+El borde de la vista de cámara indica el estado: gris en reposo, ámbar en la
+cuenta regresiva y rojo mientras graba.
+
+Al terminar cada toma se evalúa la calidad en el momento. Si MediaPipe perdió las
+manos en más del 20 % de los frames o la confianza promedio quedó baja, la
+repetición **se rechaza y no se guarda**: se explica el motivo y se regraba con `R`.
+
+### Contra los errores de etiquetado
+
+- La seña sale siempre de la lista del vocabulario; no hay ningún campo de texto libre.
+- La seña se congela al iniciar la cuenta regresiva: cambiarla a mitad de una toma es imposible.
+- El nombre del archivo y la numeración de repetición los asigna el programa, nunca tú.
+
+### Consejos de encuadre
+
+MediaPipe Holistic deduce la posición de las manos a partir de la pose. Si te
+acercas tanto que el torso sale del cuadro, pierde el cuerpo y con él las manos,
+y todas las tomas se rechazan. Ubícate a **1,5 m aproximadamente, con hombros y
+torso visibles**, y con luz de frente.
+
+### Qué se guarda
+
+```
+dataset/
+  raw/<seña>/pXX_sYY_rZZ.npz     landmarks crudos + confianza + fps + layout
+  raw/<seña>/pXX_sYY_rZZ.mp4     respaldo de video (sin el esqueleto dibujado)
+  metadata.csv                   una fila por repetición, con las condiciones
+```
+
+Los landmarks se guardan **sin normalizar**, y las partes no detectadas van como
+`NaN` (un cero es una coordenada válida y se confundiría con "ausente"). Así se
+puede cambiar el criterio de normalización en Fase 2 sin regrabar nada. Cada
+`.npz` incluye además el layout del vector, para seguir siendo interpretable si
+la configuración cambia.
+
 ## Pruebas
 
 ```bash
@@ -93,8 +152,8 @@ src/senasperu/
   model/                (Fase 2) arquitectura, export ONNX, inferencia
   stabilize/            (Fase 3) umbral, votación, debouncing
   tts/                  (Fase 3) voz offline con Piper
-  ui/                   PySide6
-  data/                 (Fase 1) dataset .npz, metadata, control de calidad
+  ui/                   PySide6: smoke test y grabador
+  data/                 Dataset: control de calidad, escritura .npz y metadata
 scripts/                Puntos de entrada ejecutables
 tests/                  pytest (sin cámara)
 dataset/  models/  logs/    Ignorados por git

@@ -12,10 +12,28 @@ def imagen_negra(alto: int = 120, ancho: int = 160) -> np.ndarray:
     return np.zeros((alto, ancho, 3), dtype=np.uint8)
 
 
-def test_to_pixels_convierte_y_recorta() -> None:
+def test_to_pixels_convierte_y_marca_lo_que_queda_fuera() -> None:
     puntos = np.array([[0.0, 0.0], [1.0, 1.0], [0.5, 0.5], [-2.0, 3.0]], dtype=np.float32)
-    pixeles = _to_pixels(puntos, ancho=100, alto=50)
+    pixeles, dentro = _to_pixels(puntos, ancho=100, alto=50)
     assert pixeles.tolist() == [[0, 0], [99, 49], [50, 25], [0, 49]]
+    assert dentro.tolist() == [True, True, True, False]
+
+
+def test_los_landmarks_extrapolados_fuera_del_cuadro_no_se_dibujan() -> None:
+    """Pegarlos al borde dibujaba líneas fantasma a lo largo del marco."""
+    pose = np.zeros((33, 4), dtype=np.float32)
+    pose[:, 3] = 1.0
+    pose[11, :2] = (0.4, 0.4)   # hombro dentro del cuadro
+    pose[12, :2] = (0.6, 0.4)   # el otro hombro, dentro
+    pose[13, :2] = (0.4, 4.0)   # codo extrapolado muy por debajo del encuadre
+    pose[14, :2] = (0.6, 4.0)
+
+    imagen = imagen_negra()
+    LandmarkOverlay(draw_face=False).draw(imagen, HolisticResult(pose=pose))
+
+    borde_inferior = imagen[-2:, :]
+    assert not borde_inferior.any(), "se dibujó una línea fantasma en el borde"
+    assert imagen[46:50, 62:66].any(), "el hombro visible sí debe dibujarse"
 
 
 def test_la_pose_ignora_caderas_y_piernas() -> None:

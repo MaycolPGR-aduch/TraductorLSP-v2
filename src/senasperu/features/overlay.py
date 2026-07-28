@@ -100,8 +100,10 @@ class LandmarkOverlay:
                 cuyos dos extremos estén incluidos.
         """
         # .tolist() entrega enteros de Python, que es lo que espera la API de cv2.
-        pixeles: list[list[int]] = _to_pixels(puntos_norm, ancho, alto).tolist()
-        visible = range(len(pixeles)) if indices is None else indices
+        crudos, dentro = _to_pixels(puntos_norm, ancho, alto)
+        pixeles: list[list[int]] = crudos.tolist()
+        candidatos = range(len(pixeles)) if indices is None else indices
+        visible = {i for i in candidatos if i < len(dentro) and dentro[i]}
         if conexiones:
             total = len(pixeles)
             for inicio, fin in conexiones:
@@ -127,12 +129,24 @@ class LandmarkOverlay:
         color: tuple[int, int, int],
         radio: int,
     ) -> None:
-        for x, y in _to_pixels(puntos_norm, ancho, alto).tolist():
-            cv2.circle(image, (x, y), radio, color, -1)
+        pixeles, dentro = _to_pixels(puntos_norm, ancho, alto)
+        for (x, y), visible in zip(pixeles.tolist(), dentro.tolist()):
+            if visible:
+                cv2.circle(image, (x, y), radio, color, -1)
 
 
-def _to_pixels(puntos_norm: np.ndarray, ancho: int, alto: int) -> np.ndarray:
-    """Convierte coordenadas normalizadas (0-1) a píxeles enteros, recortando al borde."""
+def _to_pixels(puntos_norm: np.ndarray, ancho: int, alto: int) -> tuple[np.ndarray, np.ndarray]:
+    """Convierte coordenadas normalizadas (0-1) a píxeles enteros.
+
+    MediaPipe extrapola los landmarks que quedan fuera del encuadre, y pegarlos
+    al borde dibuja líneas fantasma a lo largo del marco. Por eso se devuelve
+    también qué puntos caen realmente dentro de la imagen: los de fuera no se
+    dibujan (los datos guardados sí los conservan intactos).
+
+    Returns:
+        Tupla ``(pixeles, dentro)``: coordenadas en píxeles y máscara booleana.
+    """
+    dentro = np.all((puntos_norm >= 0.0) & (puntos_norm <= 1.0), axis=1)
     escalados = puntos_norm * np.array([ancho, alto], dtype=np.float32)
     np.clip(escalados, [0, 0], [ancho - 1, alto - 1], out=escalados)
-    return escalados.astype(np.int32)
+    return escalados.astype(np.int32), dentro

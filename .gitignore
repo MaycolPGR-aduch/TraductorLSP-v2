@@ -1,0 +1,26 @@
+# Entornos
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Datos y modelos (nunca al repositorio)
+dataset/
+models/
+logs/
+
+# Sistema / editores
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store

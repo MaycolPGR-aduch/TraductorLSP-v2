@@ -1,0 +1,202 @@
+# ============================================================
+# SeñasPerú — Configuración central del proyecto
+# Todos los parámetros del sistema viven aquí.
+# Ningún número mágico debe existir en el código.
+# ============================================================
+
+proyecto:
+  nombre: "SeñasPerú"
+  version: "0.1.0"
+  idioma_ui: "es"
+
+# ------------------------------------------------------------
+# Captura de video
+# ------------------------------------------------------------
+camara:
+  indice: 0                 # índice del dispositivo (0 = webcam por defecto)
+  ancho: 640                # 640x480 es suficiente para MediaPipe y barato en CPU
+  alto: 480
+  fps_objetivo: 30
+  espejar: true             # vista espejo: más natural para el usuario frente a la cámara
+  cola_frames_max: 2        # colas cortas: si se llena, se descarta el frame más viejo
+
+# ------------------------------------------------------------
+# MediaPipe Holistic
+# ------------------------------------------------------------
+mediapipe:
+  model_complexity: 1       # 0 = más rápido, 1 = balance (default), 2 = más preciso
+  min_detection_confidence: 0.5
+  min_tracking_confidence: 0.5
+  usar_rostro: true         # rasgos no manuales son gramaticales en LSP
+  rostro_reducido: true     # usar subconjunto de puntos faciales (cejas, ojos, boca)
+  # Índices del subconjunto facial (FaceMesh) — cejas, contorno de ojos y boca:
+  indices_rostro: [70, 63, 105, 66, 107, 336, 296, 334, 293, 300,
+                   33, 133, 159, 145, 362, 263, 386, 374,
+                   61, 291, 0, 17, 13, 14, 78, 308]
+
+# ------------------------------------------------------------
+# Normalización de landmarks
+# ------------------------------------------------------------
+normalizacion:
+  punto_referencia: "punto_medio_hombros"   # centro del sistema de coordenadas
+  escala_referencia: "distancia_hombros"    # invarianza a distancia de cámara y tamaño corporal
+  interpolar_huecos_max_frames: 3           # huecos de detección ≤3 frames se interpolan
+  marcar_invalidos_huecos_largos: true
+
+# ------------------------------------------------------------
+# Ventana deslizante (features → modelo)
+# ------------------------------------------------------------
+ventana:
+  duracion_segundos: 2.0
+  frames_por_ventana: 48    # ~24 fps efectivos tras muestreo; ajustar tras benchmark
+  paso_frames: 8            # cada cuántos frames se ejecuta una nueva inferencia
+
+# ------------------------------------------------------------
+# Grabador de dataset (Fase 1)
+# ------------------------------------------------------------
+grabador:
+  cuenta_regresiva_segundos: 2
+  duracion_grabacion_segundos: 3.5
+  repeticiones_objetivo_por_sena: 50
+  repeticiones_min_por_sesion: 10
+  repeticiones_max_por_sesion: 15   # evitar repeticiones consecutivas casi idénticas
+  guardar_video_respaldo: false     # true si quieres conservar .mp4 además de landmarks
+  atajos:
+    grabar: "Space"
+    repetir_ultima: "R"
+    descartar_ultima: "D"
+    siguiente_sena: "Right"
+    anterior_sena: "Left"
+
+# ------------------------------------------------------------
+# Control de calidad del dataset
+# ------------------------------------------------------------
+calidad_datos:
+  max_frames_sin_manos_pct: 20      # >20% de frames sin manos → rechazo automático
+  confianza_minima_promedio: 0.5
+  rechazo_automatico: true          # rechazar y pedir regrabar en el momento
+
+# ------------------------------------------------------------
+# Dataset
+# ------------------------------------------------------------
+dataset:
+  ruta_raiz: "dataset/raw"
+  metadata_csv: "dataset/metadata.csv"
+  persona_actual: "p01"             # cambia al agregar nuevos señantes
+  # Splits SIEMPRE por sesión completa (nunca mezclar repeticiones
+  # de una misma sesión entre train y test)
+  split_por: "sesion"
+  proporcion_test: 0.2
+  semilla: 42
+
+# ------------------------------------------------------------
+# Vocabulario inicial — Fase 1
+# ------------------------------------------------------------
+# 18 señas + clase de reposo. Incluye pares deliberadamente similares
+# para detectar confusiones del modelo desde temprano.
+# "espejable": si la seña puede aumentarse con espejado horizontal
+# (false para señas donde la mano dominante o la lateralidad importan;
+# verificar cada una contra el diccionario oficial de LSP antes de grabar).
+vocabulario:
+  - {id: no_sena,    glosa: "NO-SEÑA",    texto: "",            espejable: true}   # reposo, movimientos cotidianos
+  - {id: hola,       glosa: "HOLA",       texto: "hola",        espejable: false}
+  - {id: gracias,    glosa: "GRACIAS",    texto: "gracias",     espejable: false}
+  - {id: por_favor,  glosa: "POR-FAVOR",  texto: "por favor",   espejable: false}
+  - {id: adios,      glosa: "ADIÓS",      texto: "adiós",       espejable: false}
+  - {id: si,         glosa: "SÍ",         texto: "sí",          espejable: true}
+  - {id: no,         glosa: "NO",         texto: "no",          espejable: true}
+  - {id: bien,       glosa: "BIEN",       texto: "bien",        espejable: false}
+  - {id: mal,        glosa: "MAL",        texto: "mal",         espejable: false}
+  - {id: ayuda,      glosa: "AYUDA",      texto: "ayuda",       espejable: false}
+  - {id: agua,       glosa: "AGUA",       texto: "agua",        espejable: false}
+  - {id: bano,       glosa: "BAÑO",       texto: "baño",        espejable: false}
+  - {id: dolor,      glosa: "DOLOR",      texto: "dolor",       espejable: false}
+  - {id: comer,      glosa: "COMER",      texto: "comer",       espejable: false}
+  - {id: casa,       glosa: "CASA",       texto: "casa",        espejable: true}
+  - {id: familia,    glosa: "FAMILIA",    texto: "familia",     espejable: false}
+  - {id: nombre,     glosa: "NOMBRE",     texto: "nombre",      espejable: false}
+  - {id: entender,   glosa: "ENTENDER",   texto: "entiendo",    espejable: false}
+  - {id: no_entender, glosa: "NO-ENTENDER", texto: "no entiendo", espejable: false}
+  # ENTENDER / NO-ENTENDER y SÍ / NO son los pares similares de control
+
+# ------------------------------------------------------------
+# Modelo
+# ------------------------------------------------------------
+modelo:
+  arquitectura: "transformer"       # "transformer" | "bilstm" (baseline)
+  transformer:
+    capas: 3
+    dim_modelo: 128
+    cabezas_atencion: 4
+    dim_feedforward: 256
+    dropout: 0.2
+  bilstm:
+    capas: 2
+    dim_oculta: 128
+    dropout: 0.3
+  tamano_max_mb: 10                 # objetivo tras cuantización
+  latencia_max_ms: 50               # objetivo por ventana en CPU
+
+# ------------------------------------------------------------
+# Entrenamiento (Fase 2)
+# ------------------------------------------------------------
+entrenamiento:
+  epocas: 100
+  batch_size: 32
+  learning_rate: 0.0003
+  weight_decay: 0.0001
+  early_stopping_paciencia: 15
+  semilla: 42
+  augmentation:
+    rotacion_grados_max: 8
+    escala_rango: [0.9, 1.1]
+    ruido_gaussiano_std: 0.01
+    jitter_temporal_pct: 20         # velocidad ±20%
+    espejado_horizontal: true       # solo aplica a señas con espejable: true
+    probabilidad_augmentation: 0.7
+
+# ------------------------------------------------------------
+# Export e inferencia
+# ------------------------------------------------------------
+inferencia:
+  ruta_modelo_onnx: "models/senasperu_int8.onnx"
+  cuantizacion: "int8"
+  hilos_onnx: 2                     # limitar hilos para no saturar CPUs modestas
+
+# ------------------------------------------------------------
+# Capa de estabilización (Fase 3)
+# ------------------------------------------------------------
+estabilizacion:
+  umbral_confianza: 0.7
+  ventanas_votacion: 5              # votación por mayoría sobre las últimas N ventanas
+  debounce_segundos: 0.5            # la seña debe dominar este tiempo para confirmarse
+  requiere_reposo_para_repetir: true  # una seña no se repite sin pasar por reposo
+
+# ------------------------------------------------------------
+# Texto a voz (Piper)
+# ------------------------------------------------------------
+tts:
+  motor: "piper"
+  modelo_voz: "es_ES-davefx-medium"   # alternativas: es_ES-sharvard-medium, es_MX-claude-high
+  ruta_modelos_voz: "models/voces"
+  velocidad: 1.0
+  reproducir_automatico: false        # false: el usuario pulsa para reproducir
+  volumen: 0.9
+
+# ------------------------------------------------------------
+# Interfaz (Fase 3)
+# ------------------------------------------------------------
+ui:
+  tema: "claro"                       # "claro" | "oscuro" | "alto_contraste"
+  tamano_fuente_traduccion: 32        # fuente grande para lectura a distancia
+  mostrar_landmarks: true             # superponer esqueleto en la vista de cámara
+  mostrar_confianza: true
+  max_lineas_historial: 50
+
+# ------------------------------------------------------------
+# Logging
+# ------------------------------------------------------------
+logging:
+  nivel: "INFO"                       # DEBUG durante desarrollo
+  archivo: "logs/senasperu.log"
+  rotacion_mb: 5

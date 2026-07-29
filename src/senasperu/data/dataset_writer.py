@@ -285,6 +285,9 @@ class DatasetWriter:
                 layout_names=np.array(sample.layout.names),
                 layout_points=np.array([b.points for b in sample.layout.blocks], dtype=np.int32),
                 layout_coords=np.array([b.coords for b in sample.layout.blocks], dtype=np.int32),
+                # Necesarios para corregir la relación de aspecto al normalizar.
+                frame_width=np.int32(sample.frame_width),
+                frame_height=np.int32(sample.frame_height),
                 created_at=datetime.now().isoformat(timespec="seconds"),
                 app_version=self._app_version,
             )

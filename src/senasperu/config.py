@@ -211,6 +211,14 @@ def validate_config(config: Config) -> None:
                 raise ConfigError(
                     f"La entrada de vocabulario {dict(entrada)!r} no tiene la clave '{clave}'."
                 )
+        # YAML convierte 'no', 'yes', 'on' y 'off' en booleanos: un id sin
+        # comillas se cargaría como False y la seña pasaría a llamarse 'False'.
+        if not isinstance(entrada["id"], str):
+            raise ConfigError(
+                f"El id de seña {entrada['id']!r} no es texto. Ponlo entre comillas "
+                "en el YAML: palabras como 'no', 'yes', 'on' u 'off' se interpretan "
+                "como booleanos."
+            )
         if entrada["tipo"] not in SIGN_KINDS:
             raise ConfigError(
                 f"La seña '{entrada['id']}' tiene tipo '{entrada['tipo']}'; "

@@ -25,6 +25,11 @@ FACE_COORDS: int = 3
 POSE_LEFT_SHOULDER: int = 11
 POSE_RIGHT_SHOULDER: int = 12
 
+# Muñecas de la pose: se usan para medir el movimiento de las manos incluso
+# cuando el modelo de manos pierde la detección.
+POSE_LEFT_WRIST: int = 15
+POSE_RIGHT_WRIST: int = 16
+
 # Parte de la pose que importa en LSP: hombros, codos, muñecas y los puntos de
 # mano que entrega el modelo de pose (11-22). Se excluyen los puntos faciales
 # (0-10), que ya cubre FaceMesh, y caderas y piernas (23-32): cuando quedan

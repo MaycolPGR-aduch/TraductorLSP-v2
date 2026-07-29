@@ -33,6 +33,16 @@ mediapipe:
   indices_rostro: [70, 63, 105, 66, 107, 336, 296, 334, 293, 300,
                    33, 133, 159, 145, 362, 263, 386, 374,
                    61, 291, 0, 17, 13, 14, 78, 308]
+  # Espejado del subconjunto facial: para cada posición de indices_rostro, la
+  # posición de su punto simétrico. Necesario para el aumento por espejado
+  # horizontal; sin esto, una cara reflejada quedaría con los puntos cruzados.
+  # Verificado contra grabaciones reales: gana entre las 120 alternativas del
+  # grupo de cejas y las 24 del de ojos.
+  # Si cambias indices_rostro hay que rehacer esta lista; el código valida que
+  # sea una involución del mismo largo y, si no lo es, desactiva el espejado.
+  espejo_rostro: [9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+                  15, 14, 16, 17, 11, 10, 12, 13,
+                  19, 18, 20, 21, 22, 23, 25, 24]
 
 # ------------------------------------------------------------
 # Normalización de landmarks
@@ -50,6 +60,19 @@ ventana:
   duracion_segundos: 2.0
   frames_por_ventana: 48    # ~24 fps efectivos tras muestreo; ajustar tras benchmark
   paso_frames: 8            # cada cuántos frames se ejecuta una nueva inferencia
+  # --- Extracción de ventanas de entrenamiento (Fase 2) ---
+  # En señas dinámicas no vale cualquier ventana: las que solo contienen la
+  # preparación o el retorno a reposo se etiquetarían como la seña y son la
+  # causa típica de predicciones espurias. Se detecta el trazo por la velocidad
+  # de las muñecas y se exige que la ventana lo contenga casi entero.
+  cobertura_minima_trazo: 0.8   # fracción del trazo que debe caer dentro de la ventana
+  umbral_movimiento: 0.35       # velocidad de muñeca (anchos de hombro / s) que marca el trazo
+  # El trazo debe superar además esta fracción del pico de velocidad de la
+  # propia grabación. Hace la detección robusta al temblor de los landmarks y
+  # se adapta a señas amplias y a señas discretas por igual.
+  fraccion_pico_movimiento: 0.35
+  suavizado_movimiento_frames: 5
+  frames_validos_minimos: 0.7   # ventanas con menos torso detectado que esto se descartan
 
 # ------------------------------------------------------------
 # Grabador de dataset (Fase 1)
@@ -127,7 +150,9 @@ vocabulario:
   - {id: por_favor,  glosa: "POR-FAVOR",  texto: "por favor",   espejable: false, tipo: dinamica}
   - {id: adios,      glosa: "ADIÓS",      texto: "adiós",       espejable: false, tipo: dinamica}
   - {id: si,         glosa: "SÍ",         texto: "sí",          espejable: true,  tipo: dinamica}
-  - {id: no,         glosa: "NO",         texto: "no",          espejable: true,  tipo: dinamica}
+  # OJO: el id va entre comillas. Sin ellas, YAML interpreta 'no' como el
+  # booleano falso y la seña acabaría llamándose 'False'.
+  - {id: "no",       glosa: "NO",         texto: "no",          espejable: true,  tipo: dinamica}
   - {id: bien,       glosa: "BIEN",       texto: "bien",        espejable: false, tipo: dinamica}
   - {id: mal,        glosa: "MAL",        texto: "mal",         espejable: false, tipo: dinamica}
   - {id: ayuda,      glosa: "AYUDA",      texto: "ayuda",       espejable: false, tipo: dinamica}

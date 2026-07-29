@@ -134,6 +134,65 @@ puede cambiar el criterio de normalización en Fase 2 sin regrabar nada. Cada
 `.npz` incluye además el layout del vector, para seguir siendo interpretable si
 la configuración cambia.
 
+## Entrenar y exportar (Fase 2)
+
+Las dependencias de entrenamiento van aparte; la app final no las necesita. En
+Windows hay que pedir el wheel de CPU explícitamente, porque el de PyPI trae CUDA
+y pesa unos 2,4 GB:
+
+```bash
+pip install --index-url https://download.pytorch.org/whl/cpu torch
+```
+
+```bash
+pip install -e ".[train]"
+```
+
+**Antes de entrenar por primera vez**, revisa cómo se están extrayendo las ventanas:
+
+```bash
+python scripts/diagnose_windows.py
+```
+
+Los parámetros `ventana.umbral_movimiento` y `ventana.fraccion_pico_movimiento`
+vienen con valores **provisionales**: se fijaron sin dataset real. El script te
+dice si el trazo de cada seña se detecta donde debe y avisa si estás
+desaprovechando datos. Ajústalos en el YAML hasta que los avisos desaparezcan.
+
+```bash
+python scripts/train.py
+```
+
+```bash
+python scripts/evaluate.py --matriz models/confusion.png
+```
+
+```bash
+python scripts/export_onnx.py
+```
+
+El export escribe el modelo cuantizado a INT8, comprueba que PyTorch y ONNX
+predicen la misma clase, y mide tamaño y latencia contra los límites del YAML.
+
+### Cómo se construyen las muestras
+
+Cada repetición de 3,5 s produce varias ventanas de 2 s. Cuáles son válidas
+depende del tipo de seña: de una **estática** sirve cualquier tramo del
+sostenimiento; de una **dinámica**, solo las que contienen el trazo casi entero.
+Una ventana que solo capta la mano subiendo, etiquetada como la seña, es la causa
+típica de predicciones espurias en la app final.
+
+Las ventanas se remuestrean siempre a `frames_por_ventana`, de modo que una
+cámara a 25 FPS y otra a 30 produzcan entradas idénticas para el modelo.
+
+### Sobre la evaluación
+
+Los splits son **por sesión completa, nunca por repetición**. Dos repeticiones de
+la misma sesión comparten iluminación, ropa, encuadre y el estado del señante ese
+día: repartirlas entre train y test hace que el modelo reconozca la sesión en vez
+de la seña, y da una precisión que se desploma con usuarios reales. Por eso hace
+falta un mínimo de dos sesiones para poder evaluar.
+
 ## Pruebas
 
 ```bash

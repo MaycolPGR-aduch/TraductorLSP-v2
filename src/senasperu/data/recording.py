@@ -29,6 +29,8 @@ class RecordingSample:
         hands_per_frame: Manos detectadas en cada frame (0, 1 o 2).
         fps: FPS reales medidos durante la grabación.
         layout: Descripción del vector de features.
+        frame_width: Ancho del frame de origen, en píxeles.
+        frame_height: Alto del frame de origen, en píxeles.
         video_frames: Frames BGR sin overlay, si se pidió respaldo de video.
     """
 
@@ -38,6 +40,8 @@ class RecordingSample:
     hands_per_frame: np.ndarray
     fps: float
     layout: FeatureLayout
+    frame_width: int = 0
+    frame_height: int = 0
     video_frames: tuple[np.ndarray, ...] | None = None
 
     @property
@@ -67,6 +71,9 @@ class RecordingBuffer:
         self._hands: list[int] = []
         self._timestamps: list[float] = []
         self._images: list[np.ndarray] = []
+        # Tamaño del frame: hace falta para corregir la relación de aspecto al
+        # normalizar, y no se puede deducir de los landmarks.
+        self._frame_size: tuple[int, int] = (0, 0)
 
     def start(self, label: str) -> None:
         """Descarta lo acumulado y comienza a grabar la seña indicada."""
@@ -94,6 +101,9 @@ class RecordingBuffer:
         self._confidence.append(result.pose_visibility)
         self._hands.append(result.hands_detected)
         self._timestamps.append(timestamp)
+        if image is not None and self._frame_size == (0, 0):
+            alto, ancho = image.shape[:2]
+            self._frame_size = (ancho, alto)
         if self._keep_video and image is not None:
             # Copia obligatoria: el frame original se reutiliza aguas arriba.
             self._images.append(image.copy())
@@ -111,6 +121,8 @@ class RecordingBuffer:
             hands_per_frame=np.asarray(self._hands, dtype=np.int8),
             fps=self.measured_fps,
             layout=self._layout,
+            frame_width=self._frame_size[0],
+            frame_height=self._frame_size[1],
             video_frames=tuple(self._images) if self._keep_video else None,
         )
 

@@ -38,6 +38,9 @@ train = [
     "scikit-learn>=1.4",
     "matplotlib>=3.8",
     "onnx>=1.16",
+    # torch.onnx.export usa el exportador basado en dynamo desde PyTorch 2.6,
+    # y ese camino requiere onnxscript.
+    "onnxscript>=0.1",
     "onnxruntime>=1.17",
 ]
 # Fase 2/3 — inferencia en la app final.

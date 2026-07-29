@@ -83,11 +83,27 @@ def test_el_trazo_se_localiza_donde_esta_el_movimiento() -> None:
     assert 80 <= fin <= 100, f"el trazo termina en {fin}"
 
 
-def test_sin_movimiento_una_dinamica_cae_a_la_ventana_central() -> None:
-    """Degradación amable: una seña mal marcada como dinámica no se pierde."""
-    ventanas = extractor().extract(secuencia(105), FPS, dynamic=True)
-    assert len(ventanas) == 1
-    assert ventanas[0].start_frame == (105 - 60) // 2
+def test_sin_trazo_una_dinamica_se_trata_como_estatica() -> None:
+    """Si no hay trazo distinguible, todas las ventanas valen: no se pierde nada."""
+    quieta = secuencia(105)
+    assert extractor().active_segment(quieta, FPS) is None
+    assert len(extractor().extract(quieta, FPS, dynamic=True)) == len(
+        extractor().extract(quieta, FPS, dynamic=False)
+    )
+
+
+def test_un_movimiento_continuo_no_se_toma_como_trazo() -> None:
+    """Un saludo oscilante mueve la mano toda la toma; filtrar por 'trazo' ahí
+    descartaría ventanas perfectamente buenas."""
+    continuo = secuencia(105, movimiento=(0, 105))
+    assert extractor().active_segment(continuo, FPS) is None
+    assert len(extractor().extract(continuo, FPS, dynamic=True)) > 1
+
+
+def test_un_destello_de_ruido_no_se_toma_como_trazo() -> None:
+    """Un tramo demasiado corto es jitter del landmark, no una seña."""
+    datos = secuencia(105, movimiento=(50, 53))
+    assert extractor().active_segment(datos, FPS) is None
 
 
 def test_se_descartan_las_ventanas_con_demasiado_torso_perdido() -> None:

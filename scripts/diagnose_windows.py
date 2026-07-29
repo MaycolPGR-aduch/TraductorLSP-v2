@@ -121,9 +121,12 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Total de ventanas      : {sum(ventanas_por_grabacion)}")
     if trazos_sospechosos:
         print(
-            f"\nAVISO: en {trazos_sospechosos} grabaciones dinámicas el trazo no se "
-            "detectó o salió muy corto. Baja 'ventana.umbral_movimiento', o revisa "
-            "si esas señas son en realidad estáticas."
+            f"\nNOTA: {trazos_sospechosos} grabaciones dinámicas se trataron como "
+            "estáticas porque no se detectó un trazo con forma plausible. No se "
+            "pierde nada: todas sus ventanas se usan. Es lo esperable en señas "
+            "oscilantes, como un saludo, donde la mano se mueve durante toda la "
+            "toma. Solo merece revisión si esperabas un trazo claro y aislado: "
+            "en ese caso baja 'ventana.umbral_movimiento'."
         )
     if reparto.get(1, 0) > len(ventanas_por_grabacion) / 2:
         print(

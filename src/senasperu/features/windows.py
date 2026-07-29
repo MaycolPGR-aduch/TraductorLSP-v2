@@ -63,6 +63,8 @@ class WindowExtractor:
         smoothing_frames: int,
         min_valid_ratio: float,
         peak_fraction: float = 0.35,
+        min_stroke_pct: float = 0.15,
+        max_stroke_pct: float = 0.8,
     ) -> None:
         """Args:
         layout: Layout del vector crudo (para ubicar el bloque de pose).
@@ -86,6 +88,8 @@ class WindowExtractor:
         self._smoothing = max(1, int(smoothing_frames))
         self._min_valid_ratio = float(min_valid_ratio)
         self._peak_fraction = float(peak_fraction)
+        self._min_stroke_pct = float(min_stroke_pct)
+        self._max_stroke_pct = float(max_stroke_pct)
 
     @classmethod
     def from_config(cls, config: Config, layout: FeatureLayout) -> WindowExtractor:
@@ -100,6 +104,8 @@ class WindowExtractor:
             smoothing_frames=int(config.require("ventana.suavizado_movimiento_frames")),
             min_valid_ratio=float(config.require("ventana.frames_validos_minimos")),
             peak_fraction=float(config.get("ventana.fraccion_pico_movimiento", 0.35)),
+            min_stroke_pct=float(config.get("ventana.largo_trazo_min_pct", 0.15)),
+            max_stroke_pct=float(config.get("ventana.largo_trazo_max_pct", 0.8)),
         )
 
     @property
@@ -129,13 +135,12 @@ class WindowExtractor:
             # Grabación más corta que la ventana: se usa entera y se estira.
             largo_bruto = total
 
+        # Si no hay un trazo plausible, la toma se trata como estática: todas
+        # sus ventanas valen. Eso ocurre en dos casos, y en ambos es lo correcto:
+        # la seña se sostiene (no hay movimiento) o el movimiento es continuo
+        # durante toda la toma, como en un saludo, y entonces cualquier ventana
+        # contiene la seña.
         trazo = self.active_segment(sequence, fps) if dynamic else None
-        if dynamic and trazo is None:
-            # Sin movimiento detectable: puede ser una seña marcada como dinámica
-            # que en realidad se sostiene. Se acepta la ventana central en vez de
-            # descartar la toma entera.
-            centro = max(0, (total - largo_bruto) // 2)
-            return self._build([centro], sequence, largo_bruto)
 
         candidatos = list(range(0, max(1, total - largo_bruto + 1), self._stride))
         inicios = candidatos
@@ -192,7 +197,18 @@ class WindowExtractor:
             return None
         inicio, fin = tramo
         # +1 en el fin porque la velocidad del índice i describe el paso i -> i+1.
-        return int(inicio), int(fin) + 1
+        inicio, fin = int(inicio), int(fin) + 1
+
+        # Solo se acepta el tramo si es plausible como trazo. Medido con
+        # grabaciones reales: cuando la seña es oscilante (un saludo, por
+        # ejemplo) o el encuadre deja el brazo fuera, lo que se detecta es
+        # ruido, y filtrar por él descarta ventanas buenas. Ante la duda,
+        # se prefiere no filtrar: no perder datos pesa más que afinar.
+        largo = fin - inicio
+        total = sequence.frames
+        if largo < self._min_stroke_pct * total or largo > self._max_stroke_pct * total:
+            return None
+        return inicio, fin
 
     def wrist_speed(self, sequence: NormalizedSequence, fps: float) -> np.ndarray:
         """Velocidad suavizada de la muñeca más rápida, en anchos de hombro/s.

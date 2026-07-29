@@ -71,6 +71,12 @@ ventana:
   # propia grabación. Hace la detección robusta al temblor de los landmarks y
   # se adapta a señas amplias y a señas discretas por igual.
   fraccion_pico_movimiento: 0.35
+  # El tramo detectado solo se acepta como trazo si dura entre estas fracciones
+  # de la toma. Fuera de ese rango casi siempre es ruido (destello de un
+  # landmark) o movimiento continuo (un saludo oscilante), y en ambos casos
+  # filtrar descartaría ventanas buenas: la toma se trata como estática.
+  largo_trazo_min_pct: 0.15
+  largo_trazo_max_pct: 0.8
   suavizado_movimiento_frames: 5
   frames_validos_minimos: 0.7   # ventanas con menos torso detectado que esto se descartan
 

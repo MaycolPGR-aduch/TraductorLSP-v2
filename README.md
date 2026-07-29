@@ -3,7 +3,8 @@
 Traductor de **Lengua de Señas Peruana (LSP)** a texto y voz en tiempo real, con webcam.
 100 % offline, solo CPU, solo software libre.
 
-> Estado: **Fase 1 — Grabador de dataset**. Listo para grabar señas.
+> Estado: **Fase 3 — App de traducción en tiempo real**. El código de las cuatro
+> etapas está listo; falta grabar el dataset y entrenar el modelo.
 
 ## Requisitos
 
@@ -192,6 +193,47 @@ la misma sesión comparten iluminación, ropa, encuadre y el estado del señante
 día: repartirlas entre train y test hace que el modelo reconozca la sesión en vez
 de la seña, y da una precisión que se desploma con usuarios reales. Por eso hace
 falta un mínimo de dos sesiones para poder evaluar.
+
+## Traducir en tiempo real (Fase 3)
+
+Necesita un modelo entrenado y exportado (Fase 2).
+
+```bash
+python scripts/run_app.py
+```
+
+La ventana muestra la cámara a la izquierda y la traducción a la derecha, en
+fuente grande. Debajo del video, una barra indica el avance: primero el llenado
+de la ventana de 2 s, luego la confianza de la seña que se está confirmando.
+
+| Tecla | Acción |
+|---|---|
+| `Ctrl+S` | Reproducir la frase con voz |
+| `Ctrl+L` | Archivar la frase en el historial y empezar otra |
+| `Esc` | Salir |
+
+### Voz (opcional)
+
+La voz usa Piper y funciona sin internet, pero el modelo de voz hay que
+descargarlo una vez desde
+[huggingface.co/rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices):
+el archivo `.onnx` y su `.onnx.json`, con el nombre que indique `tts.modelo_voz`,
+en la carpeta `models/voces/`.
+
+```bash
+pip install -e ".[tts]"
+```
+
+Si el modelo no está, la app arranca igual y el botón de voz explica qué falta:
+**la traducción a texto nunca depende de la voz**.
+
+### Por qué la traducción no parpadea
+
+Sobre las predicciones crudas se aplican cuatro filtros en orden: umbral de
+confianza, votación por mayoría sobre las últimas ventanas, debouncing (la seña
+debe dominar un tiempo mínimo) y paso obligatorio por reposo antes de repetir una
+seña. Sin el último, sostener una seña dos segundos la escribiría cinco veces.
+Todo se ajusta en la sección `estabilizacion` del YAML.
 
 ## Pruebas
 

@@ -306,6 +306,15 @@ def _moving_average(valores: np.ndarray, ventana: int) -> np.ndarray:
     return np.convolve(valores, nucleo, mode="same").astype(np.float32)
 
 
+def resample_sequence(sequence: np.ndarray, target_frames: int) -> np.ndarray:
+    """Remuestrea una secuencia a una cantidad fija de frames.
+
+    Pública porque la inferencia en tiempo real debe aplicar exactamente el
+    mismo remuestreo que el entrenamiento.
+    """
+    return _resample(sequence, target_frames)
+
+
 def _resample(bloque: np.ndarray, objetivo: int) -> np.ndarray:
     """Remuestrea una secuencia a una cantidad fija de frames por interpolación.
 
